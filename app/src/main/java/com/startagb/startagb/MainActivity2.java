@@ -35,15 +35,9 @@ public class MainActivity2 extends AppCompatActivity {
 
     private FarmerLoginPgBinding flpgbng_binding;   //view binding
 
-    //Phone aunthentication object
-    private String phone;
-    private PhoneAuthProvider.ForceResendingToken forceResendingToken; //if code send failed, will used to resend code
-    private PhoneAuthProvider.OnVerificationStateChangedCallbacks mCallbacks;
-    private String nVerificationId; //will hold OTP/Verification code
-    private static final String TAG = "MAIN_TAG";
-    private FirebaseAuth firebaseAuth;
+
     private ProgressDialog pd; //progress dialog
-    private String code;
+
 
     //
 
@@ -62,83 +56,25 @@ public class MainActivity2 extends AppCompatActivity {
         flpgbng_binding.NumErrorMsg.setVisibility(View.GONE);
         flpgbng_binding.CodeErrorMsg.setVisibility(View.GONE);
 
-        firebaseAuth = FirebaseAuth.getInstance();
-        //init progress dialog
-        pd = new ProgressDialog(this);
-        pd.setTitle("Please wait...");
-        pd.setCanceledOnTouchOutside(false);
 
-        mCallbacks = new PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
-            @Override
-            public void onVerificationCompleted(@NonNull PhoneAuthCredential phoneAuthCredential) {
-
-                signInWithPhoneAuthCredential(phoneAuthCredential);
-                flpgbng_binding.NumErrorMsg.setVisibility(View.GONE);
-            }
-
-            @Override
-            public void onVerificationFailed(@NonNull FirebaseException e) {
-                pd.dismiss();
-                flpgbng_binding.NumErrorMsg.setTextColor(Color.RED);
-                //flpgbng_binding.NumErrorMsg.setText("ERROR :"+e.getMessage());
-                flpgbng_binding.NumErrorMsg.setText("Phone num: " + phone + "\n" + e.getMessage());
-                flpgbng_binding.NumErrorMsg.setVisibility(View.VISIBLE);
-                //Toast.makeText(MainActivity2.this, ""+e.getMessage(), Toast.LENGTH_SHORT).show();
-
-            }
-
-            @Override
-            public void onCodeSent(@NonNull String verificationId, @NonNull PhoneAuthProvider.ForceResendingToken token) {
-                super.onCodeSent(verificationId, forceResendingToken);
-                Log.d(TAG, "onCodeSent:" + verificationId);
-                nVerificationId = verificationId;
-                forceResendingToken = token;
-                pd.dismiss();
-
-                flpgbng_binding.PhoneNumColumn.setVisibility(View.GONE);
-                flpgbng_binding.CodeVerColumn.setVisibility(View.VISIBLE);
-
-                Toast.makeText(MainActivity2.this, "Verification Code Sent!", Toast.LENGTH_SHORT).show();
-            }
-        };
 
         //Start
         flpgbng_binding.farmerNumContinue.setOnClickListener(new View.OnClickListener(){
             @Override
             public void onClick(View view) {
-                phone = "+6" + flpgbng_binding.farmerPhoneNumberField.getText().toString().trim();
-                if(TextUtils.isEmpty(phone)){
-                    Toast.makeText(MainActivity2.this, "Please enter phone number...", Toast.LENGTH_SHORT).show();
-                }
-                else {
-                    startPhoneNumberVer(phone);
-                }
+
             }
         });
         flpgbng_binding.farmerCodeResend.setOnClickListener(new View.OnClickListener(){
             @Override
             public void onClick(View view) {
-                String phone = "+6" + flpgbng_binding.farmerPhoneNumberField.getText().toString().trim();
-                if(TextUtils.isEmpty(phone)){
-                    Toast.makeText(MainActivity2.this, "Please enter phone number...", Toast.LENGTH_SHORT).show();
-                }
-                else {
-                    resendVerCode(phone, forceResendingToken);
-                }
 
             }
         });
         flpgbng_binding.farmerCodeSubmit.setOnClickListener(new View.OnClickListener(){
             @Override
             public void onClick(View view) {
-                String codeM = flpgbng_binding.codeVerificationField.getText().toString().trim();
-                code = codeM;
-                if(TextUtils.isEmpty(code)){
-                    Toast.makeText(MainActivity2.this, "Please enter verification code...", Toast.LENGTH_SHORT).show();
-                }
-                else {
-                    VerifyPhoneNumberWithCode(nVerificationId, code);
-                }
+
             }
         });
 
@@ -151,71 +87,24 @@ public class MainActivity2 extends AppCompatActivity {
         pd.setMessage("Verifying Phone Number");
         pd.show();
 
-        PhoneAuthOptions options=
-                PhoneAuthOptions.newBuilder(firebaseAuth)
-                        .setPhoneNumber(phone)
-                        .setTimeout(60L, TimeUnit.SECONDS)
-                        .setActivity(this)
-                        .setCallbacks(mCallbacks)
-                        .build();
-        PhoneAuthProvider.verifyPhoneNumber(options);
 
     }
     private void resendVerCode(String phone, PhoneAuthProvider.ForceResendingToken token) {
         pd.setMessage("Resending Code");
         pd.show();
 
-        PhoneAuthOptions options=
-                PhoneAuthOptions.newBuilder(firebaseAuth)
-                        .setPhoneNumber(phone)
-                        .setTimeout(60L, TimeUnit.SECONDS)
-                        .setActivity(this)
-                        .setCallbacks(mCallbacks)
-                        .setForceResendingToken(token)
-                        .build();
-        PhoneAuthProvider.verifyPhoneNumber(options);
 
     }
 
     private void VerifyPhoneNumberWithCode(String nVerificationId, String code) {
-        pd.setMessage("Verifying Code");
-        pd.show();
-        PhoneAuthCredential credential = PhoneAuthProvider.getCredential(nVerificationId, code);
-        signInWithPhoneAuthCredential(credential);
+
 
     }
 
     private void signInWithPhoneAuthCredential(PhoneAuthCredential credential) {
 
-        pd.setMessage("Logging in");
 
-        firebaseAuth.signInWithCredential(credential)
-                .addOnSuccessListener(new OnSuccessListener<AuthResult>() {
-                    @Override
-                    public void onSuccess(AuthResult authResult) {
-                        //success signed in
-                        pd.dismiss();
-                        flpgbng_binding.CodeErrorMsg.setVisibility(View.GONE);
-                        Toast.makeText(MainActivity2.this, "Logged in as " +phone, Toast.LENGTH_SHORT).show();
-                        Intent i = new Intent(MainActivity2.this, FarmerHome.class);
-                        startActivity(i);
 
-                    }
-                })
-                .addOnFailureListener(new OnFailureListener() {
-                    @Override
-                    public void onFailure(@NonNull Exception e) {
-                        pd.dismiss();
-                        //Toast.makeText(MainActivity2.this, "Failed "+e.getMessage(), Toast.LENGTH_SHORT).show();
-                        flpgbng_binding.CodeErrorMsg.setTextColor(Color.RED);
-                        //flpgbng_binding.NumErrorMsg.setText("ERROR :"+e.getMessage());
-                        flpgbng_binding.CodeErrorMsg.setText("Code entered was: " + code + "\n\n"+e.getMessage());
-                        flpgbng_binding.CodeErrorMsg.setVisibility(View.VISIBLE);
-
-                       // MainActivity3
-
-                    }
-                });
     }
 
 
